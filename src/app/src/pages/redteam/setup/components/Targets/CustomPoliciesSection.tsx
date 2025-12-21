@@ -165,65 +165,78 @@ export const CustomPoliciesSection = () => {
   // Track custom names for policies (by policy ID)
   const [policyNames, setPolicyNames] = useState<Record<string, string>>({});
 
-  // Get policy plugins from config
-  const policyPlugins = config.plugins.filter(
-    (p) => typeof p === 'object' && p.id === 'policy',
-  ) as Array<{
-    id: string;
-    config: { policy: string | { id: string; text: string; name?: string } };
-  }>;
+  // Get policy plugins from config - memoized to prevent infinite re-renders
+  const policyPlugins = useMemo(
+    () =>
+      config.plugins.filter((p) => typeof p === 'object' && p.id === 'policy') as Array<{
+        id: string;
+        config: { policy: string | { id: string; text: string; name?: string } };
+      }>,
+    [config.plugins],
+  );
 
   // Convert policies to rows for the data grid
-  const rows: PolicyRow[] = useMemo(() => {
-    if (policyPlugins.length === 0) {
-      return [];
-    }
-    return policyPlugins.map((p, index) => {
-      // Handle both string and PolicyObject formats
-      let policyText: string;
-      let policyId: string;
-      let policyName: string;
+  const [rows, setRows] = useState<PolicyRow[]>([]);
 
-      if (typeof p.config.policy === 'string') {
-        policyText = p.config.policy;
-        policyId = makeInlinePolicyId(policyText);
-        policyName = makeDefaultPolicyName(index);
-      } else {
-        policyText = p.config.policy.text;
-        policyId = p.config.policy.id;
-        policyName = p.config.policy.name || policyNames[policyId] || makeDefaultPolicyName(index);
+  React.useEffect(() => {
+    async function buildRows() {
+      if (policyPlugins.length === 0) {
+        setRows([]);
+        return;
       }
 
-      return {
-        id: policyId,
-        name: policyName,
-        policyText: policyText,
-      };
-    });
+      const result: PolicyRow[] = [];
+      for (let index = 0; index < policyPlugins.length; index++) {
+        const p = policyPlugins[index];
+        // Handle both string and PolicyObject formats
+        let policyText: string;
+        let policyId: string;
+        let policyName: string;
+
+        if (typeof p.config.policy === 'string') {
+          policyText = p.config.policy;
+          policyId = await makeInlinePolicyId(policyText);
+          policyName = makeDefaultPolicyName(index);
+        } else {
+          policyText = p.config.policy.text;
+          policyId = p.config.policy.id;
+          policyName =
+            p.config.policy.name || policyNames[policyId] || makeDefaultPolicyName(index);
+        }
+
+        result.push({
+          id: policyId,
+          name: policyName,
+          policyText: policyText,
+        });
+      }
+
+      setRows(result);
+    }
+
+    buildRows();
   }, [policyPlugins, policyNames]);
 
   // Validate policy text uniqueness
   const validatePolicyText = useCallback(
-    (text: string, currentPolicyId?: string): string | undefined => {
+    async (text: string, currentPolicyId?: string): Promise<string | undefined> => {
       const trimmedText = text.trim();
       if (!trimmedText) {
         return 'Policy text is required';
       }
 
       // Check if this policy text already exists (excluding current policy being edited)
-      const duplicateExists = policyPlugins.some((p) => {
+      for (const p of policyPlugins) {
         const existingText =
           typeof p.config.policy === 'string' ? p.config.policy : p.config.policy.text;
         const existingId =
           typeof p.config.policy === 'string'
-            ? makeInlinePolicyId(p.config.policy)
+            ? await makeInlinePolicyId(p.config.policy)
             : p.config.policy.id;
 
-        return existingText === trimmedText && existingId !== currentPolicyId;
-      });
-
-      if (duplicateExists) {
-        return 'This policy text already exists. Policy texts must be unique.';
+        if (existingText === trimmedText && existingId !== currentPolicyId) {
+          return 'This policy text already exists. Policy texts must be unique.';
+        }
       }
 
       return undefined;
@@ -265,7 +278,7 @@ export const CustomPoliciesSection = () => {
     }));
   };
 
-  const handleSavePolicy = () => {
+  const handleSavePolicy = async () => {
     const { formData, mode, editingPolicy } = policyDialog;
     const trimmedText = formData.policyText.trim();
     const trimmedName = formData.name.trim();
@@ -277,7 +290,7 @@ export const CustomPoliciesSection = () => {
       errors.name = 'Name is required';
     }
 
-    const policyTextError = validatePolicyText(
+    const policyTextError = await validatePolicyText(
       trimmedText,
       mode === 'edit' ? editingPolicy?.id : undefined,
     );
@@ -294,7 +307,7 @@ export const CustomPoliciesSection = () => {
       typeof p === 'string' ? true : p.id !== 'policy',
     );
 
-    const newPolicyId = makeInlinePolicyId(trimmedText);
+    const newPolicyId = await makeInlinePolicyId(trimmedText);
 
     if (mode === 'create') {
       // Add new policy
@@ -323,14 +336,18 @@ export const CustomPoliciesSection = () => {
       toast.showToast('Policy added successfully', 'success');
     } else {
       // Update existing policy
-      const updatedPolicies = policyPlugins.map((p) => {
+      const updatedPolicies: Array<{
+        id: string;
+        config: { policy: string | { id: string; text: string; name?: string } };
+      }> = [];
+      for (const p of policyPlugins) {
         const currentPolicyId =
           typeof p.config.policy === 'string'
-            ? makeInlinePolicyId(p.config.policy)
+            ? await makeInlinePolicyId(p.config.policy)
             : p.config.policy.id;
 
         if (currentPolicyId === editingPolicy?.id) {
-          return {
+          updatedPolicies.push({
             id: 'policy',
             config: {
               policy: {
@@ -339,13 +356,14 @@ export const CustomPoliciesSection = () => {
                 name: trimmedName,
               },
             },
-          };
+          });
+        } else {
+          updatedPolicies.push({
+            id: 'policy',
+            config: { policy: p.config.policy },
+          });
         }
-        return {
-          id: 'policy',
-          config: { policy: p.config.policy },
-        };
-      });
+      }
       updateConfig('plugins', [...otherPlugins, ...updatedPolicies]);
       toast.showToast('Policy updated successfully', 'success');
     }
@@ -360,7 +378,7 @@ export const CustomPoliciesSection = () => {
     setConfirmDeleteOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!rowSelectionModel?.ids) {
       return;
     }
@@ -369,18 +387,23 @@ export const CustomPoliciesSection = () => {
     );
 
     const selectedIds = rowSelectionModel.ids;
-    const remainingPolicies = policyPlugins
-      .filter((p) => {
-        const policyId =
-          typeof p.config.policy === 'string'
-            ? makeInlinePolicyId(p.config.policy)
-            : p.config.policy.id;
-        return !selectedIds.has(policyId);
-      })
-      .map((p) => ({
-        id: 'policy',
-        config: { policy: p.config.policy },
-      }));
+    const remainingPolicies: Array<{
+      id: string;
+      config: { policy: string | { id: string; text: string; name?: string } };
+    }> = [];
+
+    for (const p of policyPlugins) {
+      const policyId =
+        typeof p.config.policy === 'string'
+          ? await makeInlinePolicyId(p.config.policy)
+          : p.config.policy.id;
+      if (!selectedIds.has(policyId)) {
+        remainingPolicies.push({
+          id: 'policy',
+          config: { policy: p.config.policy },
+        });
+      }
+    }
 
     // Clean up policy names for removed policies
     const newPolicyNames = { ...policyNames };
@@ -453,11 +476,13 @@ export const CustomPoliciesSection = () => {
       }
 
       // Map to PolicyObject with generated IDs
-      const policyObjects: PolicyObject[] = generatedPolicies.map((p) => ({
-        id: makeInlinePolicyId(p.text),
-        text: p.text,
-        name: p.name,
-      }));
+      const policyObjects: PolicyObject[] = await Promise.all(
+        generatedPolicies.map(async (p) => ({
+          id: await makeInlinePolicyId(p.text),
+          text: p.text,
+          name: p.name,
+        })),
+      );
 
       // Store as suggested policies instead of directly adding them
       setSuggestedPolicies(policyObjects);
@@ -487,12 +512,12 @@ export const CustomPoliciesSection = () => {
   }, [config.applicationDefinition, rows, suggestedPolicies, toast]);
 
   const handleAddSuggestedPolicy = useCallback(
-    (policy: PolicyObject) => {
+    async (policy: PolicyObject) => {
       const otherPlugins = config.plugins.filter((p) =>
         typeof p === 'string' ? true : p.id !== 'policy',
       );
 
-      const policyId = policy.id || makeInlinePolicyId(policy.text || '');
+      const policyId = policy.id || (await makeInlinePolicyId(policy.text || ''));
       const newPolicy = {
         id: 'policy',
         config: {
@@ -572,14 +597,10 @@ export const CustomPoliciesSection = () => {
           );
 
           const currentPolicyCount = policyPlugins.length;
-          const allPolicies = [
-            ...policyPlugins.map((p) => ({
-              id: 'policy',
-              config: { policy: p.config.policy },
-            })),
-            ...newPolicies.map((policy, index) => {
+          const newPolicyPlugins = await Promise.all(
+            newPolicies.map(async (policy, index) => {
               const policyText = policy.trim();
-              const policyId = makeInlinePolicyId(policyText);
+              const policyId = await makeInlinePolicyId(policyText);
               return {
                 id: 'policy',
                 config: {
@@ -591,6 +612,14 @@ export const CustomPoliciesSection = () => {
                 },
               };
             }),
+          );
+
+          const allPolicies = [
+            ...policyPlugins.map((p) => ({
+              id: 'policy',
+              config: { policy: p.config.policy },
+            })),
+            ...newPolicyPlugins,
           ];
 
           updateConfig('plugins', [...otherPlugins, ...allPolicies]);
