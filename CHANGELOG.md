@@ -6,20 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.120.9](https://github.com/promptfoo/promptfoo/compare/0.120.8...0.120.9) (2025-12-23)
 
-
 ### Features
 
-* **redteam:** Improve output of validate target ([#6742](https://github.com/promptfoo/promptfoo/issues/6742)) ([664c5b9](https://github.com/promptfoo/promptfoo/commit/664c5b929618b161868e73a4317b5c679ae85719))
-
+- **redteam:** Improve output of validate target ([#6742](https://github.com/promptfoo/promptfoo/issues/6742)) ([664c5b9](https://github.com/promptfoo/promptfoo/commit/664c5b929618b161868e73a4317b5c679ae85719))
 
 ### Bug Fixes
 
-* **deps:** update dependency @modelcontextprotocol/sdk to ^1.25.1 ([#6805](https://github.com/promptfoo/promptfoo/issues/6805)) ([ab85bf4](https://github.com/promptfoo/promptfoo/commit/ab85bf4e65dfa52c34833fa1c3e84177527753ce))
-* **deps:** update dependency protobufjs to v8 ([#6806](https://github.com/promptfoo/promptfoo/issues/6806)) ([0c1e4c5](https://github.com/promptfoo/promptfoo/commit/0c1e4c50a972215690d943fbbbb94604a93b508d))
-* **eval:** prevent icon overflow in results table cells ([#6807](https://github.com/promptfoo/promptfoo/issues/6807)) ([3af0a5e](https://github.com/promptfoo/promptfoo/commit/3af0a5e91211f5f9c2b708d7d39150b79abdf68d))
-* **http:** handle multipart/form-data and x-www-form-urlencoded in raw requests ([#6797](https://github.com/promptfoo/promptfoo/issues/6797)) ([8850ab2](https://github.com/promptfoo/promptfoo/commit/8850ab24dc4e1daf86168225b432ee17aae2799c))
-* **redteam:** add retry strategy for failed test cases ([#6243](https://github.com/promptfoo/promptfoo/issues/6243)) ([e7228c8](https://github.com/promptfoo/promptfoo/commit/e7228c8345bdcea352728d064da864ad0cbb4762))
-* **redteam:** reduce false positives in grader rubrics ([#6784](https://github.com/promptfoo/promptfoo/issues/6784)) ([54a552a](https://github.com/promptfoo/promptfoo/commit/54a552a68a98e203a0f492cef33969a32a33219a))
+- **deps:** update dependency @modelcontextprotocol/sdk to ^1.25.1 ([#6805](https://github.com/promptfoo/promptfoo/issues/6805)) ([ab85bf4](https://github.com/promptfoo/promptfoo/commit/ab85bf4e65dfa52c34833fa1c3e84177527753ce))
+- **deps:** update dependency protobufjs to v8 ([#6806](https://github.com/promptfoo/promptfoo/issues/6806)) ([0c1e4c5](https://github.com/promptfoo/promptfoo/commit/0c1e4c50a972215690d943fbbbb94604a93b508d))
+- **eval:** prevent icon overflow in results table cells ([#6807](https://github.com/promptfoo/promptfoo/issues/6807)) ([3af0a5e](https://github.com/promptfoo/promptfoo/commit/3af0a5e91211f5f9c2b708d7d39150b79abdf68d))
+- **http:** handle multipart/form-data and x-www-form-urlencoded in raw requests ([#6797](https://github.com/promptfoo/promptfoo/issues/6797)) ([8850ab2](https://github.com/promptfoo/promptfoo/commit/8850ab24dc4e1daf86168225b432ee17aae2799c))
+- **redteam:** add retry strategy for failed test cases ([#6243](https://github.com/promptfoo/promptfoo/issues/6243)) ([e7228c8](https://github.com/promptfoo/promptfoo/commit/e7228c8345bdcea352728d064da864ad0cbb4762))
+- **redteam:** reduce false positives in grader rubrics ([#6784](https://github.com/promptfoo/promptfoo/issues/6784)) ([54a552a](https://github.com/promptfoo/promptfoo/commit/54a552a68a98e203a0f492cef33969a32a33219a))
 
 ## [0.120.8](https://github.com/promptfoo/promptfoo/compare/0.120.7...0.120.8) (2025-12-21)
 
